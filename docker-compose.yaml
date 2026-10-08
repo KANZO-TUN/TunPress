@@ -1,0 +1,7 @@
+services:
+  app:
+    image: nginx:alpine
+    container_name: tun-press-app
+    restart: always
+    ports:
+      - "8080:80"

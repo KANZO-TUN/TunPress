@@ -1,0 +1,17 @@
+# 環境変数・シークレット
+.env
+.env.local
+*.pem
+*.key
+
+# システム・エディタ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ログ・一時ファイル
+*.log
+tmp/
+node_modules/
+__pycache__/
