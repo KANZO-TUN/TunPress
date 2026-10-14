@@ -1,8 +1,16 @@
 # 環境変数・シークレット
+.secrets/
 .env
 .env.local
 *.pem
 *.key
+
+# Claude Code の個人設定（共有しない）
+.claude/settings.local.json
+CLAUDE.local.md
+
+# ドキュメント（一旦非公開）
+docs/
 
 # システム・エディタ
 .DS_Store
