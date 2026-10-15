@@ -1,0 +1,14 @@
+# Ruff（Python の Lint・整形ツール）の設定
+# リポジトリ全体の Python コードに適用
+
+# 1行の最大文字数（日本語コメントを考慮して標準の 88 より長め）
+line-length = 120
+
+# 対象とする Python のバージョン
+target-version = "py312"
+
+[lint]
+# 有効にするルール群
+# E/W: 書式（pycodestyle）、F: 未使用変数・未定義名など（Pyflakes）
+# I: import の並び順、B: バグになりやすい書き方、UP: 古い書き方の更新
+select = ["E", "W", "F", "I", "B", "UP"]

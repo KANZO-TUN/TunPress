@@ -1,0 +1,106 @@
+# TunPress の CI（品質チェックのみ）
+# 本番デプロイは自宅サーバーの Portainer が main を自動巡回して行うため、ここではデプロイ処理・Secrets を一切扱わない
+# 各ジョブは「中身ができた部分から自動で検査が始まる」作り（未作成の部分はスキップを明示）
+
+name: CI
+
+# 発火条件: main への push と、すべてのプルリクエスト
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 権限はリポジトリの読み取りのみ（最小権限）
+permissions:
+  contents: read
+
+# 同じブランチで新しい push があれば、古い実行を自動キャンセル
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Docker Compose の構文チェック（本番で Portainer が読む設定ファイルの事前検証）
+  compose:
+    name: Docker Compose 構文チェック
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: compose の構文検証
+        run: docker compose config --quiet
+
+  # Python（Ruff による Lint・整形チェック、バックエンドができたら pytest も実行）
+  python:
+    name: Python（Ruff / pytest）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Ruff の導入（バージョン固定）
+        run: pip install ruff==0.16.9
+      - name: Lint（構文・バグになりやすい書き方の検出）
+        run: ruff check --output-format=github .
+      - name: 整形チェック（書き換えはせず、差分があれば失敗）
+        run: ruff format --check .
+      # バックエンド作成後のみ実行
+      - name: バックエンドのテスト（pytest）
+        if: hashFiles('backend/pyproject.toml') != ''
+        working-directory: backend
+        run: |
+          pip install -e ".[dev]"
+          pytest -q
+      - name: バックエンド未作成の通知
+        if: hashFiles('backend/pyproject.toml') == ''
+        run: echo "::notice::backend/pyproject.toml が無いため pytest をスキップ"
+
+  # フロントエンド（Biome / 型チェック / 本番ビルド）
+  frontend:
+    name: フロントエンド（Biome / 型チェック / ビルド）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      # フロントエンド未作成なら以降をすべてスキップ
+      - name: フロントエンドの有無を確認
+        id: detect
+        working-directory: .
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::frontend/package.json が無いためフロントエンドの検査をスキップ"
+          fi
+      - uses: actions/setup-node@v7
+        if: steps.detect.outputs.exists == 'true'
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # Next.js のビルドキャッシュ（2回目以降のビルドを高速化）
+      - uses: actions/cache@v6
+        if: steps.detect.outputs.exists == 'true'
+        with:
+          path: frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}-
+      - name: 依存パッケージの導入（lock ファイルどおり）
+        if: steps.detect.outputs.exists == 'true'
+        run: npm ci
+      - name: Biome（Lint・整形チェック）
+        if: steps.detect.outputs.exists == 'true'
+        run: npx biome ci .
+      - name: TypeScript の型チェック
+        if: steps.detect.outputs.exists == 'true'
+        run: npx tsc --noEmit
+      - name: 本番ビルドの疎通確認
+        if: steps.detect.outputs.exists == 'true'
+        run: npm run build
