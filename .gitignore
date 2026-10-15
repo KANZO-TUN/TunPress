@@ -13,10 +13,14 @@ CLAUDE.local.md
 docs/
 
 # システム・エディタ
+.orca/
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+# スクリーンショット撮影ツールの出力画像
+tools/screenshot/out/
 
 # ログ・一時ファイル
 *.log
