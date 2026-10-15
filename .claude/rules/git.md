@@ -15,6 +15,7 @@
 
 - 認証情報の格納先: リポジトリ直下の `.secrets/github/`（gitignore 対象）
 - `git config` を書き換えてはならない。具体的なコマンドは `github-ops` スキル参照。
+- 名義は AI 用アカウント（Cloud）のみとする。コミットに `Co-Authored-By: Claude ...` の行を、PR・Issue の本文に「Generated with Claude Code」の一文を付けない（GitHub 上で Claude が共同作成者として表示されるため）。
 
 ## 実行タイミング
 - コミット・push・PR 作成は、カンゾーさんから明示的な OK（承認）を得てから行う。
