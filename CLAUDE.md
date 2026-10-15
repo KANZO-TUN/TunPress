@@ -55,6 +55,9 @@
   .claude/agents/     # サブエージェント定義
   .claude/skills/     # 必要時に読み込む手順書
   plans/              # ブランチ単位の実装計画・タスク（公開）
+  tools/screenshot/   # スクリーンショット撮影ツール（Docker / Playwright）
+  .github/workflows/  # CI（品質チェックのみ。デプロイは Portainer）
+  ruff.toml           # Python の Lint・整形設定
   docs/               # 設計・企画・構築ドキュメント（gitignore 対象・非公開）
   .secrets/           # 認証情報（gitignore 対象・絶対にコミットしない）
   ```
@@ -88,4 +91,16 @@ docker compose down
 
 # README 整合性チェック（PR 作成・更新前に必須）
 python3 .claude/skills/github-ops/scripts/check_readme.py
+
+# Python の Lint・整形チェック（CI と同じ版を Docker で実行）
+docker run --rm -v "$PWD:/io" -w /io ghcr.io/astral-sh/ruff:0.16.9 check .
+docker run --rm -v "$PWD:/io" -w /io ghcr.io/astral-sh/ruff:0.16.9 format --check .
+
+# GitHub Actions のワークフロー構文チェック
+docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
+
+# 画面のスクリーンショット撮影（見た目の確認。画像は tools/screenshot/out/）
+tools/screenshot/run.sh path/to/page.html --viewport mobile
 ```
+
+- 開発用ツールは `docker-compose.yaml` に追加しない（Portainer により本番でも起動してしまうため）。
